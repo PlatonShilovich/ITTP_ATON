@@ -2,11 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WebApi_ITTP_ATON.Models
 {
-    public class User
+    public class AddUserRequestDTO
     {
-        [Required(ErrorMessage = "Guid is required")]
-        public Guid Guid { get; set; }
-
         [Required(ErrorMessage = "Login is required")]
         [RegularExpression(@"^[a-zA-Z0-9]+$", ErrorMessage = "Login must contain only Latin letters and numbers")]
         public string Login { get; set; } = string.Empty;
@@ -25,21 +22,5 @@ namespace WebApi_ITTP_ATON.Models
         public DateTime? Birthday { get; set; }
 
         public bool Admin { get; set; }
-
-        [Required(ErrorMessage = "CreatedOn is required")]
-        public DateTime CreatedOn { get; set; }
-
-        [Required(ErrorMessage = "CreatedBy is required")]
-        public string CreatedBy { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "ModifiedOn is required")]
-        public DateTime ModifiedOn { get; set; }
-
-        [Required(ErrorMessage = "ModifiedBy is required")]
-        public string ModifiedBy { get; set; } = string.Empty;
-
-        public DateTime RevokedOn { get; set; }
-
-        public string RevokedBy { get; set; } = string.Empty;
     }
 }

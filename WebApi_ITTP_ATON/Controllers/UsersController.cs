@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using WebApi_ITTP_ATON.Repositories;
 using WebApi_ITTP_ATON.Models;
+using WebApi_ITTP_ATON.Services;
 
 namespace WebApi_ITTP_ATON.Controllers
 {
@@ -8,11 +8,11 @@ namespace WebApi_ITTP_ATON.Controllers
     [Route("api/[controller]")]
     public class UsersController : ControllerBase
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUserService _userService;
 
-        public UsersController(IUserRepository userRepository)
+        public UsersController(IUserService userService)
         {
-            _userRepository = userRepository;
+            _userService = userService;
         }
 
         /// <summary>
@@ -22,27 +22,35 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoAdds">Login of the admin creating the user.</param>
         /// <returns>Created user data.</returns>
         [HttpPost]
-        public ActionResult<User> AddUserRoute([FromBody] AddUserRequestDTO userToAdd, [FromHeader(Name = "ClientInfo")] string loginWhoAdds)
+        public async Task<ActionResult<User>> AddUserRoute([FromBody] AddUserRequestDTO userToAdd, [FromHeader(Name = "ClientInfo")] string loginWhoAdds)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoAdds = _userRepository.GetUserByLogin(loginWhoAdds);
-            if (userWhoAdds == null || !userWhoAdds.Admin)
-                return Unauthorized("Only admins can create users");
-
             try
             {
-                _userRepository.AddUser(userToAdd, userWhoAdds.Login);
-                var addedUser = _userRepository.GetUserByLogin(userToAdd.Login);
-                if (addedUser == null)
-                    return StatusCode(500, "Failed to retrieve created user");
-
+                var addedUser = await _userService.AddUser(userToAdd, loginWhoAdds);
                 return CreatedAtAction(nameof(GetUserByLoginRoute), new { loginToGet = userToAdd.Login }, addedUser);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
 
@@ -54,27 +62,36 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoUpdates">Login of the user performing the update.</param>
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/personal-data")]
-        public ActionResult<User> UpdatePersonalDataRoute(string loginToUpdate, [FromBody] UpdatePersonalDataRequestDTO personalDataRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
+        public async Task<ActionResult<User>> UpdatePersonalDataRoute(string loginToUpdate, [FromBody] UpdatePersonalDataRequestDTO personalDataRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoUpdates = _userRepository.GetUserByLogin(loginWhoUpdates);
-            if (userWhoUpdates == null || userWhoUpdates.RevokedOn != DateTime.MinValue)
-                return Unauthorized("Invalid or revoked user");
-
-            if (!userWhoUpdates.Admin && loginToUpdate != loginWhoUpdates)
-                return Unauthorized("Admins can update all and users can only update themselves");
-
-            var userToUpdate = _userRepository.GetUserByLogin(loginToUpdate);
-            if (userToUpdate == null || userToUpdate.RevokedOn != DateTime.MinValue || userToUpdate.RevokedBy != string.Empty)
-                return NotFound("User not found or revoked");
-
-            userToUpdate.Name = personalDataRequest.Name ?? userToUpdate.Name;
-            userToUpdate.Gender = personalDataRequest.Gender ?? userToUpdate.Gender;
-            userToUpdate.Birthday = personalDataRequest.Birthday ?? userToUpdate.Birthday;
-            _userRepository.UpdateUser(userToUpdate, loginWhoUpdates);
-            return Ok(userToUpdate);
+            try
+            {
+                var userToUpdate = await _userService.UpdatePersonalData(loginToUpdate, personalDataRequest, loginWhoUpdates);
+                return Ok(userToUpdate);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -85,25 +102,36 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoUpdates">Login of the user performing the update.</param>
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/password")]
-        public ActionResult<User> UpdatePasswordRoute(string loginToUpdate, [FromBody] UpdatePasswordRequestDTO passwordRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
+        public async Task<ActionResult<User>> UpdatePasswordRoute(string loginToUpdate, [FromBody] UpdatePasswordRequestDTO passwordRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoUpdates = _userRepository.GetUserByLogin(loginWhoUpdates);
-            if (userWhoUpdates == null || userWhoUpdates.RevokedOn != DateTime.MinValue)
-                return Unauthorized("Invalid or revoked user");
-
-            if (!userWhoUpdates.Admin && loginToUpdate != loginWhoUpdates)
-                return Unauthorized("Admins can update all and users can only update themselves");
-
-            var userToUpdate = _userRepository.GetUserByLogin(loginToUpdate);
-            if (userToUpdate == null || userToUpdate.RevokedOn != DateTime.MinValue || userToUpdate.RevokedBy != string.Empty)
-                return NotFound("User not found or revoked");
-
-            userToUpdate.Password = passwordRequest.Password ?? userToUpdate.Password;
-            _userRepository.UpdateUser(userToUpdate, loginWhoUpdates);
-            return Ok(userToUpdate);
+            try
+            {
+                var userToUpdate = await _userService.UpdatePassword(loginToUpdate, passwordRequest, loginWhoUpdates);
+                return Ok(userToUpdate);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -114,28 +142,36 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoUpdates">Login of the user performing the update.</param>
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/login")]
-        public ActionResult<User> UpdateLoginRoute(string loginToUpdate, [FromBody] UpdateLoginRequestDTO loginRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
+        public async Task<ActionResult<User>> UpdateLoginRoute(string loginToUpdate, [FromBody] UpdateLoginRequestDTO loginRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoUpdates = _userRepository.GetUserByLogin(loginWhoUpdates);
-            if (userWhoUpdates == null || userWhoUpdates.RevokedOn != DateTime.MinValue)
-                return Unauthorized("Invalid or revoked user");
-
-            if (!userWhoUpdates.Admin && loginToUpdate != loginWhoUpdates)
-                return Unauthorized("Admins can update all and users can only update themselves");
-
-            var userToUpdate = _userRepository.GetUserByLogin(loginToUpdate);
-            if (userToUpdate == null || userToUpdate.RevokedOn != DateTime.MinValue || userToUpdate.RevokedBy != string.Empty)
-                return NotFound("User not found or revoked");
-
-            if (_userRepository.GetUserByLogin(loginRequest.Login) != null)
-                return BadRequest("The provided login is already in use.");
-
-            userToUpdate.Login = loginRequest.Login ?? userToUpdate.Login;
-            _userRepository.UpdateUser(userToUpdate, loginWhoUpdates);
-            return Ok(userToUpdate);
+            try
+            {
+                var userToUpdate = await _userService.UpdateLogin(loginToUpdate, loginRequest, loginWhoUpdates);
+                return Ok(userToUpdate);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -144,16 +180,28 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoRequests">Login of the admin requesting the data.</param>
         /// <returns>List of active users.</returns>
         [HttpGet("active-users")]
-        public ActionResult<List<User>> GetActiveUsersRoute([FromHeader(Name = "ClientInfo")] string loginWhoRequests)
+        public async Task<ActionResult<List<User>>> GetActiveUsersRoute([FromHeader(Name = "ClientInfo")] string loginWhoRequests)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoRequests = _userRepository.GetUserByLogin(loginWhoRequests);
-            if (userWhoRequests == null || !userWhoRequests.Admin)
-                return Unauthorized("Invalid or not admin");
-
-            return Ok(_userRepository.GetActiveUsers(loginWhoRequests));
+            try
+            {
+                var users = await _userService.GetActiveUsers(loginWhoRequests);
+                return Ok(users);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -163,27 +211,32 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoRequests">Login of the user requesting the data.</param>
         /// <returns>User data (name, gender, birthday, status).</returns>
         [HttpGet("user/{loginToGet}")]
-        public ActionResult<UserNameGenderBirthdayRevokedOnStatusDTO> GetUserByLoginRoute(string loginToGet, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
+        public async Task<ActionResult<UserNameGenderBirthdayRevokedOnStatusDTO>> GetUserByLoginRoute(string loginToGet, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoRequests = _userRepository.GetUserByLogin(loginWhoRequests);
-            if (userWhoRequests == null || !userWhoRequests.Admin)
-                return Unauthorized("Invalid or not admin");
-
-            var userToGet = _userRepository.GetUserByLogin(loginToGet);
-            if (userToGet == null)
-                return NotFound("User not found");
-
-            var response = new UserNameGenderBirthdayRevokedOnStatusDTO
+            try
             {
-                Name = userToGet.Name,
-                Gender = userToGet.Gender,
-                Birthday = userToGet.Birthday,
-                RevokedOn = userToGet.RevokedOn
-            };
-            return Ok(response);
+                var user = await _userService.GetUserByLogin(loginToGet, loginWhoRequests);
+                return Ok(user);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -193,65 +246,137 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="whoRequestedLogin">Login of the user requesting the data.</param>
         /// <returns>User data.</returns>
         [HttpGet("user")]
-        public ActionResult<User> GetUserRoute([FromQuery] GetUserByLoginAndPasswordRequestDTO loginAndPasswordToGet, [FromHeader(Name = "ClientInfo")] string whoRequestedLogin)
+        public async Task<ActionResult<User>> GetUserRoute([FromQuery] GetUserByLoginAndPasswordRequestDTO loginAndPasswordToGet, [FromHeader(Name = "ClientInfo")] string whoRequestedLogin)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoRequests = _userRepository.GetUserByLogin(whoRequestedLogin);
-            if (userWhoRequests == null || userWhoRequests.RevokedOn != DateTime.MinValue || userWhoRequests.RevokedBy != string.Empty)
-                return Unauthorized("Invalid or revoked user");
-
-            if (loginAndPasswordToGet.Login != whoRequestedLogin)
-                return Unauthorized("Users can only access their own data");
-
-            var user = _userRepository.GetUserByLoginAndPassword(loginAndPasswordToGet.Login, loginAndPasswordToGet.Password);
-            if (user == null)
-                return NotFound("User not found or invalid credentials");
-
-            return Ok(user);
+            try
+            {
+                var user = await _userService.GetUser(loginAndPasswordToGet, whoRequestedLogin);
+                return Ok(user);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
-        [HttpGet("users/older-than/{age}")]
-        public ActionResult<List<User>> GetUsersOverTheAgeOfRoute(int overTheAgeOf, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
+
+        /// <summary>
+        /// Gets users older than a specified age (admin only).
+        /// </summary>
+        /// <param name="overTheAgeOf">Age threshold.</param>
+        /// <param name="loginWhoRequests">Login of the admin requesting the data.</param>
+        /// <returns>List of users older than the specified age.</returns>
+        [HttpGet("users/older-than/{overTheAgeOf}")]
+        public async Task<ActionResult<List<User>>> GetUsersOverTheAgeOfRoute(int overTheAgeOf, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var userWhoRequests = _userRepository.GetUserByLogin(loginWhoRequests);
-            if (userWhoRequests == null || !userWhoRequests.Admin)
-                return Unauthorized("Invalid or not admin");
-            var thresholdDate = DateTime.UtcNow.AddYears(-overTheAgeOf);
-            return Ok(_userRepository.GetUsersOverTheAgeOf(thresholdDate));
+
+            try
+            {
+                var users = await _userService.GetUsersOverTheAgeOf(overTheAgeOf, loginWhoRequests);
+                return Ok(users);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Revokes a user (admin only).
+        /// </summary>
+        /// <param name="loginToDelete">Login of the user to revoke.</param>
+        /// <param name="loginWhoDeletes">Login of the admin performing the revocation.</param>
+        /// <returns>Revoked user data.</returns>
         [HttpDelete("users/{loginToDelete}")]
-        public ActionResult<User> RevokeUserRoute(string loginToDelete, [FromHeader(Name = "ClientInfo")] string loginWhoDeletes)
+        public async Task<ActionResult<User>> RevokeUserRoute(string loginToDelete, [FromHeader(Name = "ClientInfo")] string loginWhoDeletes)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userWhoDeletes = _userRepository.GetUserByLogin(loginWhoDeletes);
-            if (userWhoDeletes == null || !userWhoDeletes.Admin)
-                return Unauthorized("Invalid or not admin");
-
-            var userToDelete = _userRepository.GetUserByLogin(loginToDelete);
-            if (userToDelete == null)
-                return NotFound("User not found");
-
-            _userRepository.RevokeUser(userToDelete, loginWhoDeletes);
-            return Ok(userToDelete);
+            try
+            {
+                var user = await _userService.RevokeUser(loginToDelete, loginWhoDeletes);
+                return Ok(user);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Restores a revoked user (admin only).
+        /// </summary>
+        /// <param name="loginToRestore">Login of the user to restore.</param>
+        /// <param name="loginWhoRestores">Login of the admin performing the restoration.</param>
+        /// <returns>Restored user data.</returns>
         [HttpPut("users/{loginToRestore}/restore")]
-        public ActionResult<User> RestoreUserRoute(string loginToRestore, [FromHeader(Name = "ClientInfo")] string loginWhoRestores)
+        public async Task<ActionResult<User>> RestoreUserRoute(string loginToRestore, [FromHeader(Name = "ClientInfo")] string loginWhoRestores)
         {
-            var userWhoRestores = _userRepository.GetUserByLogin(loginWhoRestores);
-            if (userWhoRestores == null || !userWhoRestores.Admin)
-                return Unauthorized("Invalid or not admin");
-            var userToRestore = _userRepository.GetUserByLogin(loginToRestore);
-            if (userToRestore == null)
-                return NotFound("User not found");
-            _userRepository.RestoreUser(userToRestore, loginWhoRestores);
-            return Ok(userToRestore);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var user = await _userService.RestoreUser(loginToRestore, loginWhoRestores);
+                return Ok(user);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid input: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

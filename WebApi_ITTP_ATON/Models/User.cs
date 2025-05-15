@@ -4,6 +4,7 @@ namespace WebApi_ITTP_ATON.Models
 {
     public class User
     {
+        [Key]
         [Required(ErrorMessage = "Guid is required")]
         public Guid Guid { get; set; }
 

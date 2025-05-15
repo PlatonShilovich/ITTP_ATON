@@ -4,13 +4,13 @@ namespace WebApi_ITTP_ATON.Repositories
 {
     public interface IUserRepository
     {
-        void AddUser(AddUserRequestDTO userToAdd, string loginWhoAdds);
-        User? GetUserByLogin(string userLogin);
-        User? GetUserByLoginAndPassword(string userLogin, string userPassword);
-        List<User>? GetActiveUsers(string loginWhoRequests);
-        void UpdateUser(User userToUpdate, string loginWhoUpdates);
-        List<User>? GetUsersOverTheAgeOf(DateTime date);
-        void RevokeUser(User userToRevoke, string loginWhoRevokes);
-        void RestoreUser(User userToRestore, string loginWhoRestores);
+        Task<User> AddUser(AddUserRequestDTO userToAdd, string loginWhoAdds);
+        Task<User?> GetUserByLogin(string userLogin);
+        Task<User?> GetUserByLoginAndPassword(string userLogin, string userPassword);
+        Task<List<User>> GetActiveUsers(string loginWhoRequests);
+        Task UpdateUser(User userToUpdate, string loginWhoUpdates);
+        Task<List<User>> GetUsersOverTheAgeOf(DateTime date);
+        Task RevokeUser(User userToRevoke, string loginWhoRevokes);
+        Task RestoreUser(User userToRestore, string loginWhoRestores);
     }
 }

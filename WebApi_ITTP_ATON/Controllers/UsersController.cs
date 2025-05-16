@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WebApi_ITTP_ATON.Enums;
 using WebApi_ITTP_ATON.Models;
 using WebApi_ITTP_ATON.Services;
 
@@ -22,6 +23,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoAdds">Login of the admin creating the user.</param>
         /// <returns>Created user data.</returns>
         [HttpPost]
+        [RoleFilter(Roles.AdminOnly)]
         public async Task<ActionResult<User>> AddUserRoute([FromBody] AddUserRequestDTO userToAdd, [FromHeader(Name = "ClientInfo")] string loginWhoAdds)
         {
             if (!ModelState.IsValid)
@@ -39,10 +41,6 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -62,6 +60,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoUpdates">Login of the user performing the update.</param>
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/personal-data")]
+        [RoleFilter(Roles.AdminOrSelf)]
         public async Task<ActionResult<User>> UpdatePersonalDataRoute(string loginToUpdate, [FromBody] UpdatePersonalDataRequestDTO personalDataRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
         {
             if (!ModelState.IsValid)
@@ -79,10 +78,6 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -102,6 +97,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoUpdates">Login of the user performing the update.</param>
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/password")]
+        [RoleFilter(Roles.AdminOrSelf)]
         public async Task<ActionResult<User>> UpdatePasswordRoute(string loginToUpdate, [FromBody] UpdatePasswordRequestDTO passwordRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
         {
             if (!ModelState.IsValid)
@@ -119,11 +115,7 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
-            }
+            } 
             catch (InvalidOperationException ex)
             {
                 return NotFound(ex.Message);
@@ -142,6 +134,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoUpdates">Login of the user performing the update.</param>
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/login")]
+        [RoleFilter(Roles.AdminOrSelf)]
         public async Task<ActionResult<User>> UpdateLoginRoute(string loginToUpdate, [FromBody] UpdateLoginRequestDTO loginRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
         {
             if (!ModelState.IsValid)
@@ -160,10 +153,6 @@ namespace WebApi_ITTP_ATON.Controllers
             {
                 return BadRequest($"Invalid input: {ex.Message}");
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
-            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(ex.Message);
@@ -180,6 +169,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoRequests">Login of the admin requesting the data.</param>
         /// <returns>List of active users.</returns>
         [HttpGet("active-users")]
+        [RoleFilter(Roles.AdminOnly)]
         public async Task<ActionResult<List<User>>> GetActiveUsersRoute([FromHeader(Name = "ClientInfo")] string loginWhoRequests)
         {
             if (!ModelState.IsValid)
@@ -194,10 +184,6 @@ namespace WebApi_ITTP_ATON.Controllers
             {
                 return BadRequest($"Invalid input: {ex.Message}");
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
-            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
@@ -211,6 +197,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoRequests">Login of the user requesting the data.</param>
         /// <returns>User data (name, gender, birthday, status).</returns>
         [HttpGet("user/{loginToGet}")]
+        [RoleFilter(Roles.AdminOnly)]
         public async Task<ActionResult<UserNameGenderBirthdayRevokedOnStatusDTO>> GetUserByLoginRoute(string loginToGet, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
         {
             if (!ModelState.IsValid)
@@ -224,10 +211,6 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -246,6 +229,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="whoRequestedLogin">Login of the user requesting the data.</param>
         /// <returns>User data.</returns>
         [HttpGet("user")]
+        [RoleFilter(Roles.SelfOnly)]
         public async Task<ActionResult<User>> GetUserRoute([FromQuery] GetUserByLoginAndPasswordRequestDTO loginAndPasswordToGet, [FromHeader(Name = "ClientInfo")] string whoRequestedLogin)
         {
             if (!ModelState.IsValid)
@@ -264,10 +248,6 @@ namespace WebApi_ITTP_ATON.Controllers
             {
                 return BadRequest($"Invalid input: {ex.Message}");
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
-            }
             catch (InvalidOperationException ex)
             {
                 return NotFound(ex.Message);
@@ -285,6 +265,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoRequests">Login of the admin requesting the data.</param>
         /// <returns>List of users older than the specified age.</returns>
         [HttpGet("users/older-than/{overTheAgeOf}")]
+        [RoleFilter(Roles.AdminOnly)]
         public async Task<ActionResult<List<User>>> GetUsersOverTheAgeOfRoute(int overTheAgeOf, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
         {
             if (!ModelState.IsValid)
@@ -299,10 +280,6 @@ namespace WebApi_ITTP_ATON.Controllers
             {
                 return BadRequest($"Invalid input: {ex.Message}");
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
-            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
@@ -316,6 +293,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoDeletes">Login of the admin performing the revocation.</param>
         /// <returns>Revoked user data.</returns>
         [HttpDelete("users/{loginToDelete}")]
+        [RoleFilter(Roles.AdminOnly)]
         public async Task<ActionResult<User>> RevokeUserRoute(string loginToDelete, [FromHeader(Name = "ClientInfo")] string loginWhoDeletes)
         {
             if (!ModelState.IsValid)
@@ -329,10 +307,6 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -351,6 +325,7 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <param name="loginWhoRestores">Login of the admin performing the restoration.</param>
         /// <returns>Restored user data.</returns>
         [HttpPut("users/{loginToRestore}/restore")]
+        [RoleFilter(Roles.AdminOnly)]
         public async Task<ActionResult<User>> RestoreUserRoute(string loginToRestore, [FromHeader(Name = "ClientInfo")] string loginWhoRestores)
         {
             if (!ModelState.IsValid)
@@ -364,10 +339,6 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(ex.Message);
             }
             catch (InvalidOperationException ex)
             {

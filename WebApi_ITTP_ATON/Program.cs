@@ -5,7 +5,6 @@ using WebApi_ITTP_ATON.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddDbContext<UserDbContext>(options => options.UseInMemoryDatabase("UsersDB"));
@@ -53,7 +52,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// app.UseHttpsRedirection(); // Закомментировано для избежания предупреждения
 app.MapControllers();
 
 app.Run();

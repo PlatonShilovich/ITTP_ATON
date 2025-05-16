@@ -16,6 +16,8 @@ namespace WebApi_ITTP_ATON.Filters
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
+            var cancellationToken = context.HttpContext.RequestAborted;
+
             var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
 
             var loginWhoRequests = context.HttpContext.Request.Headers["ClientInfo"].ToString();
@@ -24,8 +26,8 @@ namespace WebApi_ITTP_ATON.Filters
                 context.Result = new ObjectResult(new { error = "ClientInfo header is missing" }) { StatusCode = 401 };
                 return;
             }
-
-            var user = await userRepository.GetUserByLogin(loginWhoRequests);
+            
+            var user = await userRepository.GetUserByLogin(loginWhoRequests, cancellationToken);
             if (user == null)
             {
                 context.Result = new ObjectResult(new { error = "User not found" }) { StatusCode = 401 };

@@ -24,15 +24,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>Created user data.</returns>
         [HttpPost]
         [RoleFilter(Roles.AdminOnly)]
-        public async Task<ActionResult<User>> AddUserRoute([FromBody] AddUserRequestDTO userToAdd, [FromHeader(Name = "ClientInfo")] string loginWhoAdds)
+        public async Task<ActionResult<User>> AddUserRoute([FromBody] AddUserRequestDTO userToAdd, [FromHeader(Name = "ClientInfo")] string loginWhoAdds, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var addedUser = await _userService.AddUser(userToAdd, loginWhoAdds);
+                var addedUser = await _userService.AddUser(userToAdd, loginWhoAdds, cancellationToken);
                 return CreatedAtAction(nameof(GetUserByLoginRoute), new { loginToGet = userToAdd.Login }, addedUser);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentNullException ex)
             {
@@ -61,15 +65,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/personal-data")]
         [RoleFilter(Roles.AdminOrSelf)]
-        public async Task<ActionResult<User>> UpdatePersonalDataRoute(string loginToUpdate, [FromBody] UpdatePersonalDataRequestDTO personalDataRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
+        public async Task<ActionResult<User>> UpdatePersonalDataRoute(string loginToUpdate, [FromBody] UpdatePersonalDataRequestDTO personalDataRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var userToUpdate = await _userService.UpdatePersonalData(loginToUpdate, personalDataRequest, loginWhoUpdates);
+                var userToUpdate = await _userService.UpdatePersonalData(loginToUpdate, personalDataRequest, loginWhoUpdates, cancellationToken);
                 return Ok(userToUpdate);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentNullException ex)
             {
@@ -98,15 +106,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/password")]
         [RoleFilter(Roles.AdminOrSelf)]
-        public async Task<ActionResult<User>> UpdatePasswordRoute(string loginToUpdate, [FromBody] UpdatePasswordRequestDTO passwordRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
+        public async Task<ActionResult<User>> UpdatePasswordRoute(string loginToUpdate, [FromBody] UpdatePasswordRequestDTO passwordRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var userToUpdate = await _userService.UpdatePassword(loginToUpdate, passwordRequest, loginWhoUpdates);
+                var userToUpdate = await _userService.UpdatePassword(loginToUpdate, passwordRequest, loginWhoUpdates, cancellationToken);
                 return Ok(userToUpdate);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentNullException ex)
             {
@@ -115,7 +127,7 @@ namespace WebApi_ITTP_ATON.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest($"Invalid input: {ex.Message}");
-            } 
+            }
             catch (InvalidOperationException ex)
             {
                 return NotFound(ex.Message);
@@ -135,15 +147,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>Updated user data.</returns>
         [HttpPut("users/{loginToUpdate}/login")]
         [RoleFilter(Roles.AdminOrSelf)]
-        public async Task<ActionResult<User>> UpdateLoginRoute(string loginToUpdate, [FromBody] UpdateLoginRequestDTO loginRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates)
+        public async Task<ActionResult<User>> UpdateLoginRoute(string loginToUpdate, [FromBody] UpdateLoginRequestDTO loginRequest, [FromHeader(Name = "ClientInfo")] string loginWhoUpdates, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var userToUpdate = await _userService.UpdateLogin(loginToUpdate, loginRequest, loginWhoUpdates);
+                var userToUpdate = await _userService.UpdateLogin(loginToUpdate, loginRequest, loginWhoUpdates, cancellationToken);
                 return Ok(userToUpdate);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentNullException ex)
             {
@@ -170,15 +186,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>List of active users.</returns>
         [HttpGet("active-users")]
         [RoleFilter(Roles.AdminOnly)]
-        public async Task<ActionResult<List<User>>> GetActiveUsersRoute([FromHeader(Name = "ClientInfo")] string loginWhoRequests)
+        public async Task<ActionResult<List<User>>> GetActiveUsersRoute([FromHeader(Name = "ClientInfo")] string loginWhoRequests, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var users = await _userService.GetActiveUsers(loginWhoRequests);
+                var users = await _userService.GetActiveUsers(loginWhoRequests, cancellationToken);
                 return Ok(users);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentException ex)
             {
@@ -198,15 +218,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>User data (name, gender, birthday, status).</returns>
         [HttpGet("user/{loginToGet}")]
         [RoleFilter(Roles.AdminOnly)]
-        public async Task<ActionResult<UserNameGenderBirthdayRevokedOnStatusDTO>> GetUserByLoginRoute(string loginToGet, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
+        public async Task<ActionResult<UserNameGenderBirthdayRevokedOnStatusDTO>> GetUserByLoginRoute(string loginToGet, [FromHeader(Name = "ClientInfo")] string loginWhoRequests, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var user = await _userService.GetUserByLogin(loginToGet, loginWhoRequests);
+                var user = await _userService.GetUserByLogin(loginToGet, loginWhoRequests, cancellationToken);
                 return Ok(user);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentException ex)
             {
@@ -230,15 +254,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>User data.</returns>
         [HttpGet("user")]
         [RoleFilter(Roles.SelfOnly)]
-        public async Task<ActionResult<User>> GetUserRoute([FromQuery] GetUserByLoginAndPasswordRequestDTO loginAndPasswordToGet, [FromHeader(Name = "ClientInfo")] string whoRequestedLogin)
+        public async Task<ActionResult<User>> GetUserRoute([FromQuery] GetUserByLoginAndPasswordRequestDTO loginAndPasswordToGet, [FromHeader(Name = "ClientInfo")] string whoRequestedLogin, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var user = await _userService.GetUser(loginAndPasswordToGet, whoRequestedLogin);
+                var user = await _userService.GetUser(loginAndPasswordToGet, whoRequestedLogin, cancellationToken);
                 return Ok(user);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentNullException ex)
             {
@@ -266,15 +294,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>List of users older than the specified age.</returns>
         [HttpGet("users/older-than/{overTheAgeOf}")]
         [RoleFilter(Roles.AdminOnly)]
-        public async Task<ActionResult<List<User>>> GetUsersOverTheAgeOfRoute(int overTheAgeOf, [FromHeader(Name = "ClientInfo")] string loginWhoRequests)
+        public async Task<ActionResult<List<User>>> GetUsersOverTheAgeOfRoute(int overTheAgeOf, [FromHeader(Name = "ClientInfo")] string loginWhoRequests, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var users = await _userService.GetUsersOverTheAgeOf(overTheAgeOf, loginWhoRequests);
+                var users = await _userService.GetUsersOverTheAgeOf(overTheAgeOf, loginWhoRequests, cancellationToken);
                 return Ok(users);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentException ex)
             {
@@ -294,15 +326,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>Revoked user data.</returns>
         [HttpDelete("users/{loginToDelete}")]
         [RoleFilter(Roles.AdminOnly)]
-        public async Task<ActionResult<User>> RevokeUserRoute(string loginToDelete, [FromHeader(Name = "ClientInfo")] string loginWhoDeletes)
+        public async Task<ActionResult<User>> RevokeUserRoute(string loginToDelete, [FromHeader(Name = "ClientInfo")] string loginWhoDeletes, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var user = await _userService.RevokeUser(loginToDelete, loginWhoDeletes);
+                var user = await _userService.RevokeUser(loginToDelete, loginWhoDeletes, cancellationToken);
                 return Ok(user);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentException ex)
             {
@@ -326,15 +362,19 @@ namespace WebApi_ITTP_ATON.Controllers
         /// <returns>Restored user data.</returns>
         [HttpPut("users/{loginToRestore}/restore")]
         [RoleFilter(Roles.AdminOnly)]
-        public async Task<ActionResult<User>> RestoreUserRoute(string loginToRestore, [FromHeader(Name = "ClientInfo")] string loginWhoRestores)
+        public async Task<ActionResult<User>> RestoreUserRoute(string loginToRestore, [FromHeader(Name = "ClientInfo")] string loginWhoRestores, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var user = await _userService.RestoreUser(loginToRestore, loginWhoRestores);
+                var user = await _userService.RestoreUser(loginToRestore, loginWhoRestores, cancellationToken);
                 return Ok(user);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499, "Request was canceled");
             }
             catch (ArgumentException ex)
             {

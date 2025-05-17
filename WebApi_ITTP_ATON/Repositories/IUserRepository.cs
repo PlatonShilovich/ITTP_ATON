@@ -1,3 +1,4 @@
+using WebApi_ITTP_ATON.Entities;
 using WebApi_ITTP_ATON.Models;
 
 namespace WebApi_ITTP_ATON.Repositories

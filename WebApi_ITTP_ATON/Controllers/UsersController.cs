@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WebApi_ITTP_ATON.Entities;
 using WebApi_ITTP_ATON.Enums;
 using WebApi_ITTP_ATON.Models;
 using WebApi_ITTP_ATON.Services;

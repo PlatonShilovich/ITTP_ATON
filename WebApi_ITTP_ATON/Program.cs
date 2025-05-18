@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddDbContext<UserDbContext>(options => options.UseInMemoryDatabase("UsersDB"));
+// builder.Services.AddDbContext<UserDbContext>(options =>
+//     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -35,8 +37,6 @@ using (var scope = app.Services.CreateScope())
             CreatedBy = "System",
             ModifiedOn = DateTime.UtcNow,
             ModifiedBy = "System",
-            RevokedOn = DateTime.MinValue,
-            RevokedBy = string.Empty
         });
         await context.SaveChangesAsync();
     }

@@ -27,8 +27,8 @@ namespace WebApi_ITTP_ATON.Entities
 
         public string ModifiedBy { get; set; } = string.Empty;
 
-        public DateTime RevokedOn { get; set; }
+        public DateTime? RevokedOn { get; set; }
 
-        public string RevokedBy { get; set; } = string.Empty;
+        public string? RevokedBy { get; set; }
     }
 }

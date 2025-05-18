@@ -5,13 +5,13 @@ namespace WebApi_ITTP_ATON.Repositories
 {
     public interface IUserRepository
     {
-        Task<User> AddUser(AddUserRequestDTO userToAdd, string loginWhoAdds, CancellationToken cancellationToken);
-        Task<User?> GetUserByLogin(string userLogin, CancellationToken cancellationToken);
-        Task<User?> GetUserByLoginAndPassword(string userLogin, string userPassword, CancellationToken cancellationToken);
-        Task<List<User>> GetActiveUsers(string loginWhoRequests, CancellationToken cancellationToken);
-        Task UpdateUser(User userToUpdate, string loginWhoUpdates, CancellationToken cancellationToken);
-        Task<List<User>> GetUsersOverTheAgeOf(DateTime date, CancellationToken cancellationToken);
-        Task RevokeUser(User userToRevoke, string loginWhoRevokes, CancellationToken cancellationToken);
-        Task RestoreUser(User userToRestore, string loginWhoRestores, CancellationToken cancellationToken);
+        Task<User> AddUser(AddUserDto userToAdd, string loginWhoAdds, CancellationToken cancellationToken = default);
+        Task<User?> GetUserByLogin(string userLogin, CancellationToken cancellationToken = default);
+        Task<User?> GetUserByLoginAndPassword(string userLogin, string userPassword, CancellationToken cancellationToken = default);
+        Task<List<User>> GetActiveUsers(CancellationToken cancellationToken = default);
+        Task UpdateUser(User userToUpdate, string loginWhoUpdates, CancellationToken cancellationToken = default);
+        Task<List<User>> GetUsersOverTheAgeOf(DateTime date, CancellationToken cancellationToken = default);
+        Task RevokeUser(User userToRevoke, string loginWhoRevokes, CancellationToken cancellationToken = default);
+        Task RestoreUser(User userToRestore, string loginWhoRestores, CancellationToken cancellationToken = default);
     }
 }

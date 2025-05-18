@@ -13,156 +13,128 @@ namespace WebApi_ITTP_ATON.Services
             _userRepository = userRepository;
         }
 
-        public async Task<User> AddUser(AddUserRequestDTO userToAdd, string loginWhoAdds, CancellationToken cancellationToken)
+        public async Task<UserDto> AddUser(AddUserDto userToAdd, string loginWhoAdds, CancellationToken cancellationToken = default)
         {
-            if (userToAdd == null)
-                throw new ArgumentNullException(nameof(userToAdd));
-            if (string.IsNullOrEmpty(loginWhoAdds))
-                throw new ArgumentException("Login of the user who adds cannot be empty", nameof(loginWhoAdds));
-            
-            return await _userRepository.AddUser(userToAdd, loginWhoAdds, cancellationToken);
-        }
-
-        public async Task<User> UpdatePersonalData(string loginToUpdate, UpdatePersonalDataRequestDTO personalDataRequest, string loginWhoUpdates, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrEmpty(loginToUpdate))
-                throw new ArgumentException("Login to update cannot be empty", nameof(loginToUpdate));
-            if (personalDataRequest == null)
-                throw new ArgumentNullException(nameof(personalDataRequest));
-            if (string.IsNullOrEmpty(loginWhoUpdates))
-                throw new ArgumentException("Login of the user who updates cannot be empty", nameof(loginWhoUpdates));
-            
-            var userToUpdate = await _userRepository.GetUserByLogin(loginToUpdate,cancellationToken);
-            if (userToUpdate == null || userToUpdate.RevokedOn != DateTime.MinValue || userToUpdate.RevokedBy != string.Empty)
-                throw new InvalidOperationException("User not found or revoked");
-
-            userToUpdate.Name = personalDataRequest.Name ?? userToUpdate.Name;
-            userToUpdate.Gender = personalDataRequest.Gender ?? userToUpdate.Gender;
-            userToUpdate.Birthday = personalDataRequest.Birthday ?? userToUpdate.Birthday;
-            await _userRepository.UpdateUser(userToUpdate, loginWhoUpdates,cancellationToken);
-            return userToUpdate;
-        }
-
-        public async Task<User> UpdatePassword(string loginToUpdate, UpdatePasswordRequestDTO passwordRequest, string loginWhoUpdates, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrEmpty(loginToUpdate))
-                throw new ArgumentException("Login to update cannot be empty", nameof(loginToUpdate));
-            if (passwordRequest == null)
-                throw new ArgumentNullException(nameof(passwordRequest));
-            if (string.IsNullOrEmpty(loginWhoUpdates))
-                throw new ArgumentException("Login of the user who updates cannot be empty", nameof(loginWhoUpdates));
-            
-            var userToUpdate = await _userRepository.GetUserByLogin(loginToUpdate, cancellationToken);
-            if (userToUpdate == null || userToUpdate.RevokedOn != DateTime.MinValue || userToUpdate.RevokedBy != string.Empty)
-                throw new InvalidOperationException("User not found or revoked");
-
-            userToUpdate.Password = passwordRequest.Password ?? userToUpdate.Password;
-            await _userRepository.UpdateUser(userToUpdate, loginWhoUpdates, cancellationToken);
-            return userToUpdate;
-        }
-
-        public async Task<User> UpdateLogin(string loginToUpdate, UpdateLoginRequestDTO loginRequest, string loginWhoUpdates, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrEmpty(loginToUpdate))
-                throw new ArgumentException("Login to update cannot be empty", nameof(loginToUpdate));
-            if (loginRequest == null)
-                throw new ArgumentNullException(nameof(loginRequest));
-            if (string.IsNullOrEmpty(loginWhoUpdates))
-                throw new ArgumentException("Login of the user who updates cannot be empty", nameof(loginWhoUpdates));
-            
-            var userToUpdate = await _userRepository.GetUserByLogin(loginToUpdate, cancellationToken);
-            if (userToUpdate == null || userToUpdate.RevokedOn != DateTime.MinValue || userToUpdate.RevokedBy != string.Empty)
-                throw new InvalidOperationException("User not found or revoked");
-
-            if (await _userRepository.GetUserByLogin(loginRequest.Login, cancellationToken) != null)
-                throw new InvalidOperationException("The provided login is already in use.");
-
-            userToUpdate.Login = loginRequest.Login ?? userToUpdate.Login;
-            await _userRepository.UpdateUser(userToUpdate, loginWhoUpdates, cancellationToken);
-            return userToUpdate;
-        }
-
-        public async Task<List<User>> GetActiveUsers(string loginWhoRequests, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrEmpty(loginWhoRequests))
-                throw new ArgumentException("Login of the user who requests cannot be empty", nameof(loginWhoRequests));
-            
-            return await _userRepository.GetActiveUsers(loginWhoRequests, cancellationToken);
-        }
-
-        public async Task<UserNameGenderBirthdayRevokedOnStatusDTO> GetUserByLogin(string loginToGet, string loginWhoRequests, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrEmpty(loginToGet))
-                throw new ArgumentException("Login to get cannot be empty", nameof(loginToGet));
-            if (string.IsNullOrEmpty(loginWhoRequests))
-                throw new ArgumentException("Login of the user who requests cannot be empty", nameof(loginWhoRequests));
-            
-            var userToGet = await _userRepository.GetUserByLogin(loginToGet, cancellationToken);
-            if (userToGet == null)
-                throw new InvalidOperationException("User not found");
-
-            return new UserNameGenderBirthdayRevokedOnStatusDTO
+            var existingUser = await _userRepository.GetUserByLogin(userToAdd.Login, cancellationToken);
+            if (existingUser != null)
             {
-                Name = userToGet.Name,
-                Gender = userToGet.Gender,
-                Birthday = userToGet.Birthday,
-                RevokedOn = userToGet.RevokedOn
+                throw new InvalidOperationException("Пользователь с таким логином уже существует.");
+            }
+
+            var user = await _userRepository.AddUser(userToAdd, loginWhoAdds, cancellationToken);
+            return MapToDto(user);
+        }
+
+        public async Task<UserDto> UpdatePersonalData(string loginToUpdate, UpdatePersonalDataDto personalDataRequest, string loginWhoUpdates, CancellationToken cancellationToken = default)
+        {
+            var user = await _userRepository.GetUserByLogin(loginToUpdate, cancellationToken);
+            if (user == null || user.RevokedOn != null)
+                throw new InvalidOperationException("Пользователь не найден или отозван");
+
+            user.Name = personalDataRequest.Name ?? user.Name;
+            user.Gender = personalDataRequest.Gender ?? user.Gender;
+            user.Birthday = personalDataRequest.Birthday ?? user.Birthday;
+            await _userRepository.UpdateUser(user, loginWhoUpdates, cancellationToken);
+            return MapToDto(user);
+        }
+
+        public async Task<UserDto> UpdatePassword(string loginToUpdate, UpdatePasswordDto passwordRequest, string loginWhoUpdates, CancellationToken cancellationToken = default)
+        {
+            var user = await _userRepository.GetUserByLogin(loginToUpdate, cancellationToken);
+            if (user == null || user.RevokedOn != null)
+                throw new InvalidOperationException("Пользователь не найден или отозван");
+
+            user.Password = passwordRequest.Password ?? user.Password;
+            await _userRepository.UpdateUser(user, loginWhoUpdates, cancellationToken);
+            return MapToDto(user);
+        }
+
+        public async Task<UserDto> UpdateLogin(string loginToUpdate, UpdateLoginDto loginRequest, string loginWhoUpdates, CancellationToken cancellationToken = default)
+        {
+            var user = await _userRepository.GetUserByLogin(loginToUpdate, cancellationToken);
+            if (user == null || user.RevokedOn != null)
+                throw new InvalidOperationException("Пользователь не найден или отозван");
+
+            user.Login = loginRequest.Login ?? user.Login;
+            await _userRepository.UpdateUser(user, loginWhoUpdates, cancellationToken);
+            return MapToDto(user);
+        }
+
+        public async Task<List<UserDto>> GetActiveUsers(string loginWhoRequests, CancellationToken cancellationToken = default)
+        {
+            var users = await _userRepository.GetActiveUsers(cancellationToken);
+            return users.Select(MapToDto).ToList();
+        }
+
+        public async Task<GetPersonalDataDto> GetUserByLogin(string loginToGet, string loginWhoRequests, CancellationToken cancellationToken = default)
+        {
+            var user = await _userRepository.GetUserByLogin(loginToGet, cancellationToken);
+            if (user == null)
+                throw new InvalidOperationException("Пользователь не найден");
+
+            return new GetPersonalDataDto
+            {
+                Name = user.Name,
+                Gender = user.Gender,
+                Birthday = user.Birthday,
+                RevokedOn = user.RevokedOn ?? DateTime.MinValue
             };
         }
 
-        public async Task<User> GetUser(GetUserByLoginAndPasswordRequestDTO loginAndPasswordToGet, string whoRequestedLogin, CancellationToken cancellationToken)
+        public async Task<UserDto> GetUser(GetUserByLoginAndPasswordDto loginAndPasswordToGet, string whoRequestedLogin, CancellationToken cancellationToken = default)
         {
-            if (loginAndPasswordToGet == null)
-                throw new ArgumentNullException(nameof(loginAndPasswordToGet));
-            if (string.IsNullOrEmpty(whoRequestedLogin))
-                throw new ArgumentException("Login of the user who requests cannot be empty", nameof(whoRequestedLogin));
-            
-            var userToGet = await _userRepository.GetUserByLoginAndPassword(loginAndPasswordToGet.Login, loginAndPasswordToGet.Password, cancellationToken);
-            if (userToGet == null)
-                throw new InvalidOperationException("User not found or invalid credentials");
+            var user = await _userRepository.GetUserByLoginAndPassword(loginAndPasswordToGet.Login, loginAndPasswordToGet.Password, cancellationToken);
+            if (user == null || user.RevokedOn != null)
+                throw new InvalidOperationException("Пользователь не найден или отозван");
 
-            return userToGet;
+            return MapToDto(user);
         }
 
-        public async Task<List<User>> GetUsersOverTheAgeOf(int overTheAgeOf, string loginWhoRequests, CancellationToken cancellationToken)
+        public async Task<List<UserDto>> GetUsersOverTheAgeOf(int overTheAgeOf, string loginWhoRequests, CancellationToken cancellationToken = default)
         {
-            if (overTheAgeOf < 0)
-                throw new ArgumentException("Age cannot be negative", nameof(overTheAgeOf));
-            if (string.IsNullOrEmpty(loginWhoRequests))
-                throw new ArgumentException("Login of the user who requests cannot be empty", nameof(loginWhoRequests));
-            
             var thresholdDate = DateTime.UtcNow.AddYears(-overTheAgeOf);
-            return await _userRepository.GetUsersOverTheAgeOf(thresholdDate, cancellationToken);
+            var users = await _userRepository.GetUsersOverTheAgeOf(thresholdDate, cancellationToken);
+            return users.Select(MapToDto).ToList();
         }
 
-        public async Task<User> RevokeUser(string loginToDelete, string loginWhoDeletes, CancellationToken cancellationToken)
+        public async Task<UserDto> RevokeUser(string loginToDelete, string loginWhoDeletes, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(loginToDelete))
-                throw new ArgumentException("Login to delete cannot be empty", nameof(loginToDelete));
-            if (string.IsNullOrEmpty(loginWhoDeletes))
-                throw new ArgumentException("Login of the user who deletes cannot be empty", nameof(loginWhoDeletes));
-            
-            var userToDelete = await _userRepository.GetUserByLogin(loginToDelete, cancellationToken);
-            if (userToDelete == null)
-                throw new InvalidOperationException("User not found");
+            var user = await _userRepository.GetUserByLogin(loginToDelete, cancellationToken);
+            if (user == null)
+                throw new InvalidOperationException("Пользователь не найден");
 
-            await _userRepository.RevokeUser(userToDelete, loginWhoDeletes, cancellationToken);
-            return userToDelete;
+            await _userRepository.RevokeUser(user, loginWhoDeletes, cancellationToken);
+            return MapToDto(user);
         }
 
-        public async Task<User> RestoreUser(string loginToRestore, string loginWhoRestores, CancellationToken cancellationToken)
+        public async Task<UserDto> RestoreUser(string loginToRestore, string loginWhoRestores, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(loginToRestore))
-                throw new ArgumentException("Login to restore cannot be empty", nameof(loginToRestore));
-            if (string.IsNullOrEmpty(loginWhoRestores))
-                throw new ArgumentException("Login of the user who restores cannot be empty", nameof(loginWhoRestores));
-            
-            var userToRestore = await _userRepository.GetUserByLogin(loginToRestore, cancellationToken);
-            if (userToRestore == null)
-                throw new InvalidOperationException("User not found");
+            var user = await _userRepository.GetUserByLogin(loginToRestore, cancellationToken);
+            if (user == null)
+                throw new InvalidOperationException("Пользователь не найден");
 
-            await _userRepository.RestoreUser(userToRestore, loginWhoRestores, cancellationToken);
-            return userToRestore;
+            await _userRepository.RestoreUser(user, loginWhoRestores, cancellationToken);
+            return MapToDto(user);
+        }
+
+        private UserDto MapToDto(User user)
+        {
+            return new UserDto
+            {
+                Guid = user.Guid,
+                Login = user.Login,
+                Password = user.Password,
+                Name = user.Name,
+                Gender = user.Gender,
+                Birthday = user.Birthday,
+                Admin = user.Admin,
+                CreatedOn = user.CreatedOn,
+                CreatedBy = user.CreatedBy,
+                ModifiedOn = user.ModifiedOn,
+                ModifiedBy = user.ModifiedBy,
+                RevokedOn = user.RevokedOn,
+                RevokedBy = user.RevokedBy
+            };
         }
     }
 }
